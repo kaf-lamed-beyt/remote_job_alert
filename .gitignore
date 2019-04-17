@@ -6,7 +6,8 @@ yarn-debug.log*
 yarn-error.log*
 yarn.lock
 package-lock.json
-
+.env
+.vs
 # packages
 /node_modules
 
