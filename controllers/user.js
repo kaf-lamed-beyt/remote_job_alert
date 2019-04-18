@@ -2,6 +2,7 @@ const nodemailer = require("nodemailer");
 const User = require("../models/user");
 const mailgun = require("mailgun-js");
 const path = require("path");
+const sendWeeklyEmail = require("./emailFunction");
 const fs = require("fs");
 const mg = mailgun({
   apiKey: process.env.MAILGUN_API_KEY,
@@ -57,39 +58,23 @@ async function sendMail(req, res, next) {
   }
 }
 
-async function sendMailForRemoteJob(job) {
-  try {
-    const filename = path.normalize(
-      path.join(__dirname, "../email-templates/remote_job.hbs")
-    );
-    const job_link = job.job_link || "";
-    const html = fs
-      .readFileSync(filename)
-      .toString()
-      .replace(/{{job_title}}/, job.job_title)
-      .replace(/{{company_name}}/, job.company_name)
-      .replace(/{{image_link}}/, job.image_link)
-      .replace(/{{job_link}}/, job_link)
-      .replace(/ {{career_level}}/, job.career_level);
 
-    User.find()
-      .cursor()
-      .on("data", async function(user) {
-        const data = {
-          from: "Devalert <noreply@devalert.com>",
-          to: user.email,
-          subject: "New Remote job Alert!",
-          html: html.replace(/{{email}}/, user.email)
-        };
-        const body = await mg.messages().send(data);
-      })
-      .on("end", function() {
-        console.log("Done!");
-      });
-  } catch (err) {
-    console.error(err);
+async function sendMailForRemoteJob() {
+  try {
+    var presentTime = Date.now();
+    var aWeekAgo = presentTime - 604800000;
+    var date = new Date(aWeekAgo).toISOString().split('T')[0];
+    var foundJobs = await db.find({ created_date: { $gt: date } });
+
+    sendWeeklyEmail(foundJobs);
+
+  } catch (error) {
+    console.log(error);
   }
 }
+// fire the email automatically
+sendMailForRemoteJob()
+
 
 async function sendContactAlert(req, res, next) {
   try {
